@@ -1,4 +1,4 @@
-import verifiedBotsData from '../data/verified-bots.json' with { type: 'json' };
+import verifiedBotsData from '../data/verified-bots.json';
 
 type VerifiedBot = {
   name: string;

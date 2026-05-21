@@ -1,4 +1,4 @@
-import crawlersData from '../data/crawlers.json' with { type: 'json' };
+import crawlersData from '../data/crawlers.json';
 
 type CrawlerEntry = { name: string; ua: string; vendor: string };
 

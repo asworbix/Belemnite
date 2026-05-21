@@ -1,4 +1,4 @@
-import crawlersData from '../data/crawlers.json' with { type: 'json' };
+import crawlersData from '../data/crawlers.json';
 const builtinCrawlers = (crawlersData.crawlers ?? []);
 export function matchCrawler(ua, customCrawlers = []) {
     if (!ua)

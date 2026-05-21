@@ -1,4 +1,4 @@
-import asnsData from '../data/asns.json' with { type: 'json' };
+import asnsData from '../data/asns.json';
 import type { DetectionResult } from '../types.js';
 
 // v0.1: Vercel Edge Middleware does not expose ASN data directly.

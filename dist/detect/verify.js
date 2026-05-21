@@ -1,4 +1,4 @@
-import verifiedBotsData from '../data/verified-bots.json' with { type: 'json' };
+import verifiedBotsData from '../data/verified-bots.json';
 const VERIFIED = (verifiedBotsData.bots ?? []);
 // Returns { verified: true } only when the UA matches a known good crawler
 // AND the client IP falls inside one of that crawler's published ranges.

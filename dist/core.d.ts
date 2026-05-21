@@ -10,7 +10,8 @@ export type HandleResult = {
 } | {
     kind: 'poison';
     body: string;
+    contentType: string;
 };
 export declare function handleRequest(req: Request, config: ResolvedConfig, ctx?: HandleContext): HandleResult;
-export declare function poisonResponse(body: string): Response;
+export declare function poisonResponse(body: string, contentType?: string): Response;
 export declare function blockResponse(): Response;

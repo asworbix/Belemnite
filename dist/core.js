@@ -2,10 +2,10 @@ import { matchCrawler } from './detect/userAgents.js';
 import { detectByBehavior } from './detect/behavior.js';
 import { verifyClaimedBot } from './detect/verify.js';
 import { isHoneypotPath } from './detect/honeypot.js';
-import { renderPoisonPage } from './poison/render.js';
 import { logCatch } from './log.js';
 const DEFAULT_HONEYPOT_PREFIX = '/belemnite-honeypot';
-const DEFAULT_BYTE_CAP = 50 * 1024;
+const DEFAULT_POISON_BODY = 'fart';
+const DEFAULT_POISON_CONTENT_TYPE = 'text/plain; charset=utf-8';
 const DEFAULT_AUTH_COOKIES = ['session', 'auth', 'token', 'sid', 'sb-access-token'];
 export function resolveConfig(input = {}) {
     return {
@@ -16,10 +16,10 @@ export function resolveConfig(input = {}) {
         logCatches: input.logCatches ?? true,
         customCrawlers: input.customCrawlers ?? [],
         excludePaths: input.excludePaths ?? [],
-        corpus: input.corpus ?? '',
         honeypotPathPrefix: input.honeypotPathPrefix ?? DEFAULT_HONEYPOT_PREFIX,
-        poisonByteCap: input.poisonByteCap ?? DEFAULT_BYTE_CAP,
         authCookieNames: input.authCookieNames ?? DEFAULT_AUTH_COOKIES,
+        poisonBody: input.poisonBody ?? DEFAULT_POISON_BODY,
+        poisonContentType: input.poisonContentType ?? DEFAULT_POISON_CONTENT_TYPE,
         onCatch: input.onCatch,
     };
 }
@@ -33,13 +33,7 @@ export function handleRequest(req, config, ctx = {}) {
     // pasted the URL gets poison, but those URLs are CSS-hidden and disallowed
     // in robots.txt, so legitimate humans should never land here.
     if (config.honeypots && isHoneypotPath(pathname, config.honeypotPathPrefix)) {
-        return decide({
-            reason: 'honeypot',
-            detail: pathname,
-            ua,
-            ip: ctx.ip,
-            path: pathname,
-        }, config);
+        return decide({ reason: 'honeypot', detail: pathname, ua, ip: ctx.ip, path: pathname }, config);
     }
     // Logged-in users always pass. We'd rather miss a catch than break a real user.
     if (hasAuthCookie(req, config.authCookieNames))
@@ -51,23 +45,11 @@ export function handleRequest(req, config, ctx = {}) {
     }
     const uaMatch = matchCrawler(ua, config.customCrawlers);
     if (uaMatch.matched) {
-        return decide({
-            reason: 'ua',
-            detail: uaMatch.name,
-            ua,
-            ip: ctx.ip,
-            path: pathname,
-        }, config);
+        return decide({ reason: 'ua', detail: uaMatch.name, ua, ip: ctx.ip, path: pathname }, config);
     }
     const behavior = detectByBehavior(req, config.behaviorThreshold);
     if (behavior.matched) {
-        return decide({
-            reason: behavior.reason,
-            detail: behavior.detail,
-            ua,
-            ip: ctx.ip,
-            path: pathname,
-        }, config);
+        return decide({ reason: behavior.reason, detail: behavior.detail, ua, ip: ctx.ip, path: pathname }, config);
     }
     return { kind: 'pass' };
 }
@@ -85,13 +67,11 @@ function decide(input, config) {
         return { kind: 'pass' };
     if (config.mode === 'block')
         return { kind: 'block' };
-    const body = renderPoisonPage({
-        path: input.path,
-        corpus: config.corpus || undefined,
-        honeypotPathPrefix: config.honeypotPathPrefix,
-        byteCap: config.poisonByteCap,
-    });
-    return { kind: 'poison', body };
+    return {
+        kind: 'poison',
+        body: config.poisonBody,
+        contentType: config.poisonContentType,
+    };
 }
 function matchesExclude(pathname, excludes) {
     for (const p of excludes) {
@@ -119,11 +99,11 @@ function hasAuthCookie(req, names) {
     }
     return false;
 }
-export function poisonResponse(body) {
+export function poisonResponse(body, contentType) {
     return new Response(body, {
         status: 200,
         headers: {
-            'content-type': 'text/html; charset=utf-8',
+            'content-type': contentType ?? DEFAULT_POISON_CONTENT_TYPE,
             'cache-control': 'no-store, no-cache, must-revalidate, max-age=0',
             'x-robots-tag': 'noindex, nofollow',
         },

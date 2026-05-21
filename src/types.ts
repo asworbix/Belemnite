@@ -19,20 +19,19 @@ export type BelemniteConfig = {
   logCatches?: boolean;
   customCrawlers?: string[];
   excludePaths?: string[];
-  corpus?: string;
   honeypotPathPrefix?: string;
-  poisonByteCap?: number;
   authCookieNames?: string[];
+  poisonBody?: string;
+  poisonContentType?: string;
   onCatch?: (event: CatchEvent) => void;
 };
 
 export type ResolvedConfig = Required<
-  Omit<BelemniteConfig, 'onCatch' | 'customCrawlers' | 'excludePaths' | 'corpus' | 'authCookieNames'>
+  Omit<BelemniteConfig, 'onCatch' | 'customCrawlers' | 'excludePaths' | 'authCookieNames'>
 > & {
   onCatch?: (event: CatchEvent) => void;
   customCrawlers: string[];
   excludePaths: string[];
-  corpus: string;
   authCookieNames: string[];
 };
 

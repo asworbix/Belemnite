@@ -5,7 +5,6 @@ import {
   poisonResponse,
   resolveConfig,
 } from './core.js';
-import { renderPoisonPage } from './poison/render.js';
 import type { BelemniteConfig } from './types.js';
 
 export type NextMiddleware = (
@@ -23,28 +22,21 @@ export function belemnite(input: BelemniteConfig = {}): NextMiddleware {
       case 'block':
         return blockResponse();
       case 'poison':
-        return poisonResponse(result.body);
+        return poisonResponse(result.body, result.contentType);
     }
   };
 }
 
-// Drop-in Route Handler for app/belemnite-honeypot/[...slug]/route.ts.
-// Any request to the honeypot prefix gets a fresh poison maze page.
+// Drop-in Route Handler for the honeypot path. Always serves the configured
+// poison body, regardless of UA.
 export function honeypotHandler(input: BelemniteConfig = {}) {
   const config = resolveConfig(input);
-  return async (req: Request): Promise<Response> => {
-    const url = new URL(req.url);
-    const body = renderPoisonPage({
-      path: url.pathname,
-      corpus: config.corpus || undefined,
-      honeypotPathPrefix: config.honeypotPathPrefix,
-      byteCap: config.poisonByteCap,
-    });
-    return poisonResponse(body);
+  return async (_req: Request): Promise<Response> => {
+    return poisonResponse(config.poisonBody, config.poisonContentType);
   };
 }
 
-// Drop-in robots.ts content. The Disallow entry tells well-behaved crawlers
+// Drop-in robots.txt content. The Disallow entry tells well-behaved crawlers
 // to stay out of the honeypot. Misbehaving crawlers ignore robots.txt and
 // follow the hidden links and that is the catch.
 export function robotsTxt(options: {

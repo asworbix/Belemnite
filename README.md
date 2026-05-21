@@ -2,13 +2,13 @@
 
 [![tests](https://github.com/asworbix/Belemnite/actions/workflows/test.yml/badge.svg)](https://github.com/asworbix/Belemnite/actions/workflows/test.yml)
 
-> Bite back. A scraper-poisoning middleware for the modern web.
+> Bite back. A scraper-trapping middleware for the modern web.
 
-Belemnite is a defensive middleware that detects AI scrapers and agent-driven traffic, then serves them plausible-looking but fabricated content instead of the real page. Humans see the real site. Scrapers get poisoned bait.
+Belemnite detects AI scrapers and agent-driven traffic and returns whatever you want to them instead of your real page. By default it returns the word `fart`. Humans see the real site.
 
 The name comes from the belemnite, an extinct cephalopod that left hard, pointed fossils. When the site is bitten by a scraper, it bites back.
 
-This repository is the framework package, `belemnite`. Drop it into your Next.js site for full integration, or use the framework-agnostic core in any project running on Vercel Routing Middleware.
+Belemnite has no runtime dependencies. The core uses Web Standard `Request` and `Response`, so it runs on **Cloudflare Workers, Node.js, Bun, Deno, Vercel, Netlify**, or anywhere else with the Fetch API.
 
 ---
 
@@ -23,19 +23,159 @@ npm test
 
 That gives you a working clone with a green test suite. No external services required.
 
-To build the package (also runs automatically on install):
+---
+
+## Why "fart"?
+
+Two reasons.
+
+1. **No tells.** Markov-generated prose has obvious shape-tells (`"X has become a recurring topic in many recent conversations"`). LLM-generated prose costs money and adds latency. A one-word body has nothing for a careful scraper to dispute.
+2. **The point isn't to fool scrapers, it's to waste their budget.** Every request a scraper makes costs them compute and time. Returning four bytes of stub content uses their crawl quota on absolutely nothing. Whether that stub says `fart` or `<!doctype html>...` is irrelevant to the wasted-budget math.
+
+Override `poisonBody` and `poisonContentType` to return whatever you want: a 403 page, a quote, a single emoji, an HTML decoy you wrote yourself. The default is just a placeholder you should override.
+
+---
+
+## Install in your site
+
+Belemnite exports a framework-agnostic `handleRequest(req, config, ctx)` that takes a Web Standard `Request` and returns `{ kind: 'pass' | 'block' | 'poison', ... }`. Wire it into whatever runtime you use.
 
 ```bash
-npm run build
+npm install https://codeload.github.com/asworbix/Belemnite/tar.gz/main
 ```
 
-To run a single test file in watch mode while you change something:
+### Cloudflare Workers
 
-```bash
-npm run test:watch -- tests/userAgents.test.ts
+```js
+import { handleRequest, resolveConfig, poisonResponse, blockResponse } from 'belemnite';
+
+const config = resolveConfig({ mode: 'poison', honeypotPathPrefix: '/legacy-archive' });
+
+export default {
+  async fetch(request) {
+    const ip = request.headers.get('cf-connecting-ip') ?? undefined;
+    const result = handleRequest(request, config, { ip });
+    if (result.kind === 'pass') return fetch(request);
+    if (result.kind === 'block') return blockResponse();
+    return poisonResponse(result.body, result.contentType);
+  },
+};
 ```
 
-That is the whole local loop.
+### Hono (works on Workers, Node, Bun, Deno, Vercel, Netlify, ...)
+
+```ts
+import { Hono } from 'hono';
+import { handleRequest, resolveConfig, poisonResponse, blockResponse } from 'belemnite';
+
+const config = resolveConfig({ mode: 'poison', honeypotPathPrefix: '/legacy-archive' });
+const app = new Hono();
+
+app.use('*', async (c, next) => {
+  const ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
+  const result = handleRequest(c.req.raw, config, { ip });
+  if (result.kind === 'block') return blockResponse();
+  if (result.kind === 'poison') return poisonResponse(result.body, result.contentType);
+  await next();
+});
+
+export default app;
+```
+
+### Node.js (raw http)
+
+```js
+import { createServer } from 'node:http';
+import { handleRequest, resolveConfig, poisonResponse, blockResponse } from 'belemnite';
+
+const config = resolveConfig({ mode: 'poison', honeypotPathPrefix: '/legacy-archive' });
+
+createServer(async (req, res) => {
+  const request = new Request(`http://${req.headers.host}${req.url}`, {
+    method: req.method,
+    headers: req.headers,
+  });
+  const ip = req.socket.remoteAddress ?? undefined;
+  const result = handleRequest(request, config, { ip });
+  if (result.kind === 'poison') {
+    const r = poisonResponse(result.body, result.contentType);
+    res.writeHead(r.status, Object.fromEntries(r.headers));
+    res.end(await r.text());
+    return;
+  }
+  if (result.kind === 'block') {
+    res.writeHead(403); res.end('Forbidden'); return;
+  }
+  // pass-through: serve your real content here
+  res.writeHead(200, { 'content-type': 'text/html' }); res.end('<h1>hello</h1>');
+}).listen(3000);
+```
+
+### Bun
+
+```ts
+import { handleRequest, resolveConfig, poisonResponse, blockResponse } from 'belemnite';
+
+const config = resolveConfig({ mode: 'poison', honeypotPathPrefix: '/legacy-archive' });
+
+Bun.serve({
+  port: 3000,
+  fetch(request) {
+    const result = handleRequest(request, config);
+    if (result.kind === 'block') return blockResponse();
+    if (result.kind === 'poison') return poisonResponse(result.body, result.contentType);
+    return new Response('<h1>hello</h1>', { headers: { 'content-type': 'text/html' } });
+  },
+});
+```
+
+### Vercel Routing Middleware (any framework, no Next.js needed)
+
+```ts
+// middleware.ts at the project root
+import { ipAddress, next } from '@vercel/functions';
+import { handleRequest, resolveConfig, poisonResponse, blockResponse } from 'belemnite';
+
+const config = resolveConfig({
+  mode: 'poison',
+  honeypotPathPrefix: '/legacy-archive',
+  excludePaths: ['/api', '/_vercel'],
+});
+
+export default function middleware(request: Request): Response {
+  const ip = ipAddress(request);
+  const result = handleRequest(request, config, { ip });
+  if (result.kind === 'pass') return next();
+  if (result.kind === 'block') return blockResponse();
+  return poisonResponse(result.body, result.contentType);
+}
+
+export const config = { matcher: ['/((?!api/|_vercel/|.*\\..*).*)'] };
+```
+
+### Next.js
+
+```ts
+// middleware.ts at the project root
+import { belemnite } from 'belemnite/next';
+
+export default belemnite({
+  mode: 'poison',
+  honeypotPathPrefix: '/legacy-archive',
+});
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/health).*)'],
+};
+```
+
+For any of the above, add a `robots.txt` with `Disallow:` matching your chosen `honeypotPathPrefix`:
+
+```
+User-agent: *
+Allow: /
+Disallow: /legacy-archive/
+```
 
 ---
 
@@ -44,9 +184,9 @@ That is the whole local loop.
 For every incoming request, Belemnite runs this pipeline:
 
 1. **Exclude paths** like `/api` pass straight through.
-2. **Honeypot URLs** under `/belemnite-honeypot/*` always get a poison maze.
+2. **Honeypot URLs** under the configured prefix always get the poison body.
 3. **Authenticated users** (any common session cookie) pass through, even if they look like a bot. Better to miss a catch than break a real user.
-4. **Verified search bots** (Googlebot, Bingbot, DuckDuckBot) pass through if both the user agent and the client IP match a published range.
+4. **Verified search bots** (Googlebot, Bingbot, DuckDuckBot, Yandex, Baidu) pass through if both the user agent and the client IP match a published range.
 5. **AI crawler user agents** (GPTBot, ClaudeBot, PerplexityBot, CCBot, and many more) are flagged.
 6. **Behavior signals** (missing `Accept-Language`, generic `Accept: */*`, headless markers in the UA, missing `Sec-Fetch-*`) are scored. Two or more points and the request is flagged.
 7. Anything else passes through to the origin.
@@ -56,101 +196,28 @@ Flagged requests are handled according to the configured `mode`:
 | Mode | Behavior |
 |------|----------|
 | `observe` | Pass through, only log catches. Start here. |
-| `poison` | Serve generated fake content. Default. |
+| `poison` | Return the configured `poisonBody`. Default. |
 | `block` | Return HTTP 403. |
-
-The poison content is generated by a small Markov chain trained on a seed corpus. The output is wrapped in plausible HTML (title, headings, paragraphs, a few hidden honeypot links to extend the maze). The same scraper hitting the same URL twice gets the same response, so dedup-based scraping does not notice anything is off.
-
----
-
-## Install it in your site
-
-### Option A. Next.js project
-
-```bash
-npm install https://codeload.github.com/asworbix/Belemnite/tar.gz/main
-```
-
-Copy three files from `examples/` into your Next.js app:
-
-```
-your-site/
-├── middleware.ts                              from examples/middleware.ts
-├── app/
-│   ├── robots.ts                              from examples/app/robots.ts
-│   └── belemnite-honeypot/[...slug]/route.ts  from examples/app/belemnite-honeypot/[...slug]/route.ts
-```
-
-Then deploy. Belemnite uses `belemnite/next` which wraps the core in a thin Next.js adapter.
-
-### Option B. Any Vercel project (static, framework-free, non-Next)
-
-```bash
-npm install https://codeload.github.com/asworbix/Belemnite/tar.gz/main @vercel/functions
-```
-
-Create `middleware.mjs` at the project root:
-
-```js
-import { ipAddress, next } from '@vercel/functions';
-import {
-  blockResponse,
-  handleRequest,
-  poisonResponse,
-  resolveConfig,
-} from 'belemnite';
-
-const belemniteConfig = resolveConfig({
-  mode: 'observe',
-  excludePaths: ['/api', '/_vercel'],
-  honeypotPathPrefix: '/legacy-archive', // pick something specific to your site
-  logCatches: true,
-});
-
-export default function middleware(request) {
-  const ip = ipAddress(request);
-  const result = handleRequest(request, belemniteConfig, { ip });
-  switch (result.kind) {
-    case 'pass': return next();
-    case 'block': return blockResponse();
-    case 'poison': return poisonResponse(result.body);
-  }
-}
-
-export const config = {
-  matcher: ['/((?!api/|_vercel/|.*\\..*).*)'],
-};
-```
-
-Add a `robots.txt` at the project root, with the Disallow line matching whatever `honeypotPathPrefix` you chose:
-
-```
-User-agent: *
-Allow: /
-Disallow: /legacy-archive/
-```
-
-Deploy. Catches will appear in your Vercel function logs as structured JSON like `{"belemnite":{"timestamp":"...","reason":"ua","detail":"GPTBot",...}}`.
 
 ---
 
 ## Configuration
 
 ```ts
-import { belemnite } from 'belemnite/next';
+import { handleRequest, resolveConfig } from 'belemnite';
 
-export default belemnite({
-  mode: 'poison',                    // 'block' | 'poison' | 'observe'
+const config = resolveConfig({
+  mode: 'poison',                            // 'block' | 'poison' | 'observe'
   honeypots: true,
   verifiedBotAllowlist: true,
-  behaviorThreshold: 2,              // signals needed to flag via behavior
+  behaviorThreshold: 2,                      // signals needed to flag via behavior
   logCatches: true,
-  customCrawlers: [],                // additional UA substrings
-  excludePaths: [],                  // paths to skip entirely
-  corpus: '',                        // override default Markov seed corpus
-  honeypotPathPrefix: '/belemnite-honeypot',
-  poisonByteCap: 50 * 1024,
-  authCookieNames: ['session', 'auth', 'token', 'sid', 'sb-access-token'],
+  customCrawlers: [],                        // additional UA substrings
+  excludePaths: [],                          // paths to skip entirely
+  honeypotPathPrefix: '/legacy-archive',     // OVERRIDE in production
+  authCookieNames: ['session', 'auth', 'token', 'sid'],
+  poisonBody: 'fart',                        // anything you want
+  poisonContentType: 'text/plain; charset=utf-8',
   onCatch: (event) => { /* pluggable logging hook */ },
 });
 ```
@@ -159,9 +226,7 @@ Every field is optional. Recommended starting config is `mode: 'observe'` for a 
 
 ### Important: override `honeypotPathPrefix` in production
 
-The default `honeypotPathPrefix` is `/belemnite-honeypot`, which is convenient for examples but a giveaway for any careful scraper. Set this to something site-specific and plausible before going to production. Good choices look like real, unimportant paths: `/legacy-archive`, `/old-articles`, `/research-notes`. Bad choices are anything containing the word `trap`, `honey`, `bait`, or `belemnite`. The path you choose must not collide with any real page on your site (Belemnite always poisons requests under it).
-
-Remember to update your `robots.txt` `Disallow:` line to match.
+The default `honeypotPathPrefix` is `/belemnite-honeypot`, convenient for examples but a giveaway for any careful scraper. Set this to something site-specific and plausible before going to production. Good choices look like real, unimportant paths: `/legacy-archive`, `/old-articles`, `/research-notes`. Bad choices are anything containing the word `trap`, `honey`, `bait`, or `belemnite`. The path you choose must not collide with any real page on your site.
 
 ---
 
@@ -169,28 +234,22 @@ Remember to update your `robots.txt` `Disallow:` line to match.
 
 ```
 src/
-├── index.ts                  framework-agnostic public API
-├── next.ts                   Next.js adapter
+├── index.ts                  public API (framework-agnostic)
+├── next.ts                   Next.js adapter (optional, requires `next`)
 ├── core.ts                   request pipeline
 ├── log.ts                    structured catch logger
 ├── types.ts                  shared types
 ├── detect/
 │   ├── userAgents.ts         AI crawler UA matcher
-│   ├── asns.ts               ASN detector (reserved, v0.2)
-│   ├── honeypot.ts           honeypot path matcher and link emitter
+│   ├── asns.ts               ASN detector (reserved)
+│   ├── honeypot.ts           honeypot path matcher + hidden-anchor utility
 │   ├── behavior.ts           automation header signals
 │   └── verify.ts             verified-bot IP-CIDR allowlist
-├── poison/
-│   ├── markov.ts             order-N Markov chain, pure TypeScript
-│   ├── corpus.ts             corpus loader and topical seed
-│   ├── render.ts             HTML wrapper
-│   └── maze.ts               deterministic linked fake URLs
 └── data/
     ├── crawlers.json         AI bot UA signatures
     ├── asns.json             reference list of scraper ASNs
-    ├── verified-bots.json    IP-CIDR ranges for major search crawlers
-    └── seed-corpus.ts        default Markov training text
-examples/                     drop-in files for the consuming app
+    └── verified-bots.json    IP-CIDR ranges for major search crawlers
+examples/                     drop-in files for various platforms
 tests/                        vitest unit and integration tests
 scripts/                      build and verified-bot refresh scripts
 dist/                         compiled output, committed for HTTP install
@@ -204,7 +263,7 @@ dist/                         compiled output, committed for HTTP install
 npm run refresh-bots
 ```
 
-This pulls the latest IP ranges from Google and Bing, preserves manually curated entries (such as DuckDuckGo), and rewrites `src/data/verified-bots.json`. Commit the result.
+Pulls the latest IP ranges from Google and Bing, preserves manually curated entries (such as DuckDuckGo), and rewrites `src/data/verified-bots.json`. Commit the result.
 
 Run it before going to production and on a monthly schedule after that.
 
@@ -219,31 +278,14 @@ Run it before going to production and on a monthly schedule after that.
 
 ---
 
-## Edge-runtime safety
+## Known limitations
 
-The `src/` code runs in Vercel Edge Middleware. No Node built-ins (`fs`, `dns`, `net`, `path`), no native dependencies. Tests run in Node with standard web `Request` and `Response` so most portability issues surface locally before deploy.
-
----
-
-## Known limitations (v0.1)
-
-- No ASN matching at runtime. Vercel Edge does not expose ASN, so `data/asns.json` is reference only.
-- No TLS fingerprinting (JA3 / JA4). Vercel Edge does not expose it.
-- Verified-bot allowlist is IP-list based, not reverse-DNS. Refresh the list periodically with `npm run refresh-bots`.
-- Markov-based poison only. LLM-generated poison is on the roadmap.
+- No ASN matching at runtime. Most edge runtimes do not expose ASN, so `data/asns.json` is reference only.
+- No TLS fingerprinting (JA3 / JA4). Most edge runtimes do not expose it.
+- Verified-bot allowlist is IP-list based, not reverse-DNS. DNS is unavailable in most edge runtimes. Refresh the list periodically with `npm run refresh-bots`.
 
 ---
 
 ## License
 
 MIT. See [LICENSE](./LICENSE).
-
----
-
-## Roadmap
-
-- Vercel KV-backed dynamic crawler list with auto-refresh
-- LLM-generated poison via Vercel AI SDK, opt-in with cost caps
-- Admin dashboard at `/belemnite-admin`
-- Express and Hono adapters
-- Catch event stream and webhooks

@@ -27,13 +27,29 @@ describe('handleRequest', () => {
     expect(handleRequest(req, config).kind).toBe('pass');
   });
 
-  it('poisons a request from GPTBot', () => {
+  it('poisons a request from GPTBot with the default body', () => {
     const config = resolveConfig({ logCatches: false });
     const req = makeRequest({ ua: 'Mozilla/5.0 GPTBot/1.0 (+https://openai.com/gptbot)' });
     const result = handleRequest(req, config);
     expect(result.kind).toBe('poison');
     if (result.kind === 'poison') {
-      expect(result.body).toContain('<title>');
+      expect(result.body).toBe('fart');
+      expect(result.contentType).toBe('text/plain; charset=utf-8');
+    }
+  });
+
+  it('respects a custom poisonBody and contentType', () => {
+    const config = resolveConfig({
+      logCatches: false,
+      poisonBody: 'go away',
+      poisonContentType: 'text/plain',
+    });
+    const req = makeRequest({ ua: 'GPTBot/1.0' });
+    const result = handleRequest(req, config);
+    expect(result.kind).toBe('poison');
+    if (result.kind === 'poison') {
+      expect(result.body).toBe('go away');
+      expect(result.contentType).toBe('text/plain');
     }
   });
 

@@ -13,6 +13,18 @@ describe('matchCrawler', () => {
     expect(result.matched).toBe(true);
   });
 
+  it('matches Claude-User (user-initiated fetch from Claude.ai)', () => {
+    const result = matchCrawler('Mozilla/5.0 (compatible; Claude-User/1.0; +Claude-User@anthropic.com)');
+    expect(result.matched).toBe(true);
+    if (result.matched) expect(result.name).toBe('Claude-User');
+  });
+
+  it('matches Claude-SearchBot', () => {
+    const result = matchCrawler('Mozilla/5.0 (compatible; Claude-SearchBot/1.0; +https://anthropic.com)');
+    expect(result.matched).toBe(true);
+    if (result.matched) expect(result.name).toBe('Claude-SearchBot');
+  });
+
   it('does not match a vanilla browser UA', () => {
     const ua =
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';

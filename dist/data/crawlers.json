@@ -1,0 +1,31 @@
+{
+  "_comment": "AI scraper / training-crawler user-agent substrings. Matched case-insensitively. Refresh from upstream sources periodically (see README).",
+  "_updated": "2026-05-21",
+  "crawlers": [
+    { "name": "GPTBot", "ua": "GPTBot", "vendor": "OpenAI" },
+    { "name": "OAI-SearchBot", "ua": "OAI-SearchBot", "vendor": "OpenAI" },
+    { "name": "ChatGPT-User", "ua": "ChatGPT-User", "vendor": "OpenAI" },
+    { "name": "ClaudeBot", "ua": "ClaudeBot", "vendor": "Anthropic" },
+    { "name": "Claude-Web", "ua": "Claude-Web", "vendor": "Anthropic" },
+    { "name": "anthropic-ai", "ua": "anthropic-ai", "vendor": "Anthropic" },
+    { "name": "Google-Extended", "ua": "Google-Extended", "vendor": "Google (AI training)" },
+    { "name": "PerplexityBot", "ua": "PerplexityBot", "vendor": "Perplexity" },
+    { "name": "Perplexity-User", "ua": "Perplexity-User", "vendor": "Perplexity" },
+    { "name": "CCBot", "ua": "CCBot", "vendor": "Common Crawl" },
+    { "name": "Bytespider", "ua": "Bytespider", "vendor": "ByteDance" },
+    { "name": "Amazonbot", "ua": "Amazonbot", "vendor": "Amazon" },
+    { "name": "Applebot-Extended", "ua": "Applebot-Extended", "vendor": "Apple (AI training)" },
+    { "name": "Meta-ExternalAgent", "ua": "Meta-ExternalAgent", "vendor": "Meta" },
+    { "name": "FacebookBot", "ua": "FacebookBot", "vendor": "Meta" },
+    { "name": "cohere-ai", "ua": "cohere-ai", "vendor": "Cohere" },
+    { "name": "Diffbot", "ua": "Diffbot", "vendor": "Diffbot" },
+    { "name": "omgili", "ua": "omgili", "vendor": "Webz.io" },
+    { "name": "ImagesiftBot", "ua": "ImagesiftBot", "vendor": "ImageSift" },
+    { "name": "YouBot", "ua": "YouBot", "vendor": "You.com" },
+    { "name": "PetalBot", "ua": "PetalBot", "vendor": "Huawei" },
+    { "name": "SemrushBot", "ua": "SemrushBot", "vendor": "Semrush" },
+    { "name": "AhrefsBot", "ua": "AhrefsBot", "vendor": "Ahrefs" },
+    { "name": "MJ12bot", "ua": "MJ12bot", "vendor": "Majestic" },
+    { "name": "DotBot", "ua": "DotBot", "vendor": "Moz" }
+  ]
+}

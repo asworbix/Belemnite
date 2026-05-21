@@ -1,0 +1,16 @@
+{
+  "_comment": "Reference list of ASNs frequently associated with scraping infrastructure. v0.1 does NOT use this at runtime (Vercel Edge does not expose ASN). Reserved for future use.",
+  "_updated": "2026-05-21",
+  "asns": [
+    { "asn": 14618, "name": "Amazon AWS" },
+    { "asn": 16509, "name": "Amazon AWS" },
+    { "asn": 15169, "name": "Google Cloud" },
+    { "asn": 8075, "name": "Microsoft Azure" },
+    { "asn": 13335, "name": "Cloudflare" },
+    { "asn": 14061, "name": "DigitalOcean" },
+    { "asn": 63949, "name": "Linode / Akamai" },
+    { "asn": 16276, "name": "OVH" },
+    { "asn": 24940, "name": "Hetzner" },
+    { "asn": 14709, "name": "Choopa / Vultr" }
+  ]
+}

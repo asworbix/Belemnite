@@ -18,6 +18,7 @@ export type BelemniteConfig = {
   behaviorThreshold?: number;
   logCatches?: boolean;
   customCrawlers?: string[];
+  customTags?: string[];
   excludePaths?: string[];
   honeypotPathPrefix?: string;
   authCookieNames?: string[];
@@ -27,10 +28,14 @@ export type BelemniteConfig = {
 };
 
 export type ResolvedConfig = Required<
-  Omit<BelemniteConfig, 'onCatch' | 'customCrawlers' | 'excludePaths' | 'authCookieNames'>
+  Omit<
+    BelemniteConfig,
+    'onCatch' | 'customCrawlers' | 'customTags' | 'excludePaths' | 'authCookieNames'
+  >
 > & {
   onCatch?: (event: CatchEvent) => void;
   customCrawlers: string[];
+  customTags: string[];
   excludePaths: string[];
   authCookieNames: string[];
 };

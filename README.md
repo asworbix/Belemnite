@@ -1,5 +1,7 @@
 # Belemnite
 
+[![tests](https://github.com/asworbix/Belemnite/actions/workflows/test.yml/badge.svg)](https://github.com/asworbix/Belemnite/actions/workflows/test.yml)
+
 > Bite back. A scraper-poisoning middleware for the modern web.
 
 Belemnite is a defensive middleware that detects AI scrapers and agent-driven traffic, then serves them plausible-looking but fabricated content instead of the real page. Humans see the real site. Scrapers get poisoned bait.

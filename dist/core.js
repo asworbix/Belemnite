@@ -15,6 +15,7 @@ export function resolveConfig(input = {}) {
         behaviorThreshold: input.behaviorThreshold ?? 2,
         logCatches: input.logCatches ?? true,
         customCrawlers: input.customCrawlers ?? [],
+        customTags: input.customTags ?? [],
         excludePaths: input.excludePaths ?? [],
         honeypotPathPrefix: input.honeypotPathPrefix ?? DEFAULT_HONEYPOT_PREFIX,
         authCookieNames: input.authCookieNames ?? DEFAULT_AUTH_COOKIES,
@@ -43,7 +44,7 @@ export function handleRequest(req, config, ctx = {}) {
         if (verify.verified)
             return { kind: 'pass' };
     }
-    const uaMatch = matchCrawler(ua, config.customCrawlers);
+    const uaMatch = matchCrawler(ua, config.customCrawlers, config.customTags);
     if (uaMatch.matched) {
         return decide({ reason: 'ua', detail: uaMatch.name, ua, ip: ctx.ip, path: pathname }, config);
     }

@@ -30,5 +30,18 @@
     { "name": "AhrefsBot", "ua": "AhrefsBot", "vendor": "Ahrefs" },
     { "name": "MJ12bot", "ua": "MJ12bot", "vendor": "Majestic" },
     { "name": "DotBot", "ua": "DotBot", "vendor": "Moz" }
+  ],
+  "_tags_comment": "Generic vendor / identifier tokens matched on word boundaries (so 'claude' matches 'Claude-User/1.0' but not 'Claudette'). Catches new variants of known vendors without needing a fresh release.",
+  "tags": [
+    { "tag": "claude", "vendor": "Anthropic" },
+    { "tag": "anthropic", "vendor": "Anthropic" },
+    { "tag": "gpt", "vendor": "OpenAI" },
+    { "tag": "openai", "vendor": "OpenAI" },
+    { "tag": "chatgpt", "vendor": "OpenAI" },
+    { "tag": "perplexity", "vendor": "Perplexity" },
+    { "tag": "gemini", "vendor": "Google" },
+    { "tag": "mistral", "vendor": "Mistral" },
+    { "tag": "cohere", "vendor": "Cohere" },
+    { "tag": "llama", "vendor": "Meta" }
   ]
 }

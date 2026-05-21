@@ -187,7 +187,7 @@ For every incoming request, Belemnite runs this pipeline:
 2. **Honeypot URLs** under the configured prefix always get the poison body.
 3. **Authenticated users** (any common session cookie) pass through, even if they look like a bot. Better to miss a catch than break a real user.
 4. **Verified search bots** (Googlebot, Bingbot, DuckDuckBot, Yandex, Baidu) pass through if both the user agent and the client IP match a published range.
-5. **AI crawler user agents** (GPTBot, ClaudeBot, PerplexityBot, CCBot, and many more) are flagged.
+5. **AI crawler user agents** (GPTBot, ClaudeBot, PerplexityBot, CCBot, and many more) are flagged. Vendor **tags** (`claude`, `gpt`, `perplexity`, `mistral`, ...) also flag on word-boundary match, so new variants like `Claude-Researcher/2.0` get caught without a library update.
 6. **Behavior signals** (missing `Accept-Language`, generic `Accept: */*`, headless markers in the UA, missing `Sec-Fetch-*`) are scored. Two or more points and the request is flagged.
 7. Anything else passes through to the origin.
 
@@ -213,6 +213,7 @@ const config = resolveConfig({
   behaviorThreshold: 2,                      // signals needed to flag via behavior
   logCatches: true,
   customCrawlers: [],                        // additional UA substrings
+  customTags: [],                            // additional word-boundary tokens (e.g. 'mybrand-ai')
   excludePaths: [],                          // paths to skip entirely
   honeypotPathPrefix: '/legacy-archive',     // OVERRIDE in production
   authCookieNames: ['session', 'auth', 'token', 'sid'],

@@ -32,7 +32,6 @@ export function renderPoisonPage(options: RenderOptions): string {
 <title>${escapeText(title)}</title>
 <meta name="description" content="${escapeAttr(truncate(intro, 150))}">
 <meta name="robots" content="noindex">
-<meta name="generator" content="static-archive">
 </head>
 <body>
 <header>

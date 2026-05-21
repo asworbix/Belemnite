@@ -103,6 +103,7 @@ import {
 const belemniteConfig = resolveConfig({
   mode: 'observe',
   excludePaths: ['/api', '/_vercel'],
+  honeypotPathPrefix: '/legacy-archive', // pick something specific to your site
   logCatches: true,
 });
 
@@ -121,12 +122,12 @@ export const config = {
 };
 ```
 
-Add a `robots.txt` at the project root:
+Add a `robots.txt` at the project root, with the Disallow line matching whatever `honeypotPathPrefix` you chose:
 
 ```
 User-agent: *
 Allow: /
-Disallow: /belemnite-honeypot/
+Disallow: /legacy-archive/
 ```
 
 Deploy. Catches will appear in your Vercel function logs as structured JSON like `{"belemnite":{"timestamp":"...","reason":"ua","detail":"GPTBot",...}}`.
@@ -155,6 +156,12 @@ export default belemnite({
 ```
 
 Every field is optional. Recommended starting config is `mode: 'observe'` for a few days, then `mode: 'poison'` once the catches in your logs look right.
+
+### Important: override `honeypotPathPrefix` in production
+
+The default `honeypotPathPrefix` is `/belemnite-honeypot`, which is convenient for examples but a giveaway for any careful scraper. Set this to something site-specific and plausible before going to production. Good choices look like real, unimportant paths: `/legacy-archive`, `/old-articles`, `/research-notes`. Bad choices are anything containing the word `trap`, `honey`, `bait`, or `belemnite`. The path you choose must not collide with any real page on your site (Belemnite always poisons requests under it).
+
+Remember to update your `robots.txt` `Disallow:` line to match.
 
 ---
 

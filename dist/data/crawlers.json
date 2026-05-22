@@ -1,6 +1,6 @@
 {
   "_comment": "AI scraper / training-crawler user-agent substrings. Matched case-insensitively. Refresh from upstream sources periodically (see README).",
-  "_updated": "2026-05-21",
+  "_updated": "2026-05-22",
   "crawlers": [
     { "name": "GPTBot", "ua": "GPTBot", "vendor": "OpenAI" },
     { "name": "OAI-SearchBot", "ua": "OAI-SearchBot", "vendor": "OpenAI" },
@@ -42,6 +42,8 @@
     { "tag": "gemini", "vendor": "Google" },
     { "tag": "mistral", "vendor": "Mistral" },
     { "tag": "cohere", "vendor": "Cohere" },
-    { "tag": "llama", "vendor": "Meta" }
+    { "tag": "llama", "vendor": "Meta" },
+    { "tag": "copilot", "vendor": "Microsoft (defensive, see README)" },
+    { "tag": "cowork", "vendor": "Microsoft (defensive, see README)" }
   ]
 }

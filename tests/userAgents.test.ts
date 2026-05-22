@@ -62,6 +62,17 @@ describe('matchCrawler tag fallback', () => {
     expect(result.matched).toBe(true);
   });
 
+  it('catches a third-party copilot wrapper via the copilot tag', () => {
+    const result = matchCrawler('SomeCompany-Copilot/1.0');
+    expect(result.matched).toBe(true);
+    if (result.matched) expect(result.name.toLowerCase()).toContain('copilot');
+  });
+
+  it('catches a cowork variant via the cowork tag', () => {
+    const result = matchCrawler('Foo-Cowork-Researcher/1.0');
+    expect(result.matched).toBe(true);
+  });
+
   it('matches across digit boundaries (claude3 should match claude)', () => {
     const result = matchCrawler('NewVendor-claude3-agent/1.0');
     expect(result.matched).toBe(true);

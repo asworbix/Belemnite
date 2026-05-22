@@ -187,9 +187,11 @@ For every incoming request, Belemnite runs this pipeline:
 2. **Honeypot URLs** under the configured prefix always get the poison body.
 3. **Authenticated users** (any common session cookie) pass through, even if they look like a bot. Better to miss a catch than break a real user.
 4. **Verified search bots** (Googlebot, Bingbot, DuckDuckBot, Yandex, Baidu) pass through if both the user agent and the client IP match a published range.
-5. **AI crawler user agents** (GPTBot, PerplexityBot, CCBot, and many more) are flagged. Vendor **tags** (`gpt`, `perplexity`, `mistral`, ...) also flag on word-boundary match, so new variants from a known vendor get caught without a library update.
+5. **AI crawler user agents** (GPTBot, PerplexityBot, CCBot, and many more) are flagged. Vendor **tags** (`gpt`, `perplexity`, `mistral`, `copilot`, `cowork`, ...) also flag on word-boundary match, so new variants from a known vendor get caught without a library update.
 6. **Behavior signals** (missing `Accept-Language`, generic `Accept: */*`, headless markers in the UA, missing `Sec-Fetch-*`) are scored. Two or more points and the request is flagged.
 7. Anything else passes through to the origin.
+
+> **Caveat on Microsoft AI agents.** Microsoft 365 Copilot and Copilot Cowork do not publish distinct user agents today. Copilot fetches mostly route through Bing's index (which arrives as `bingbot`, which we allowlist for SEO), and Copilot Actions impersonate a standard Edge browser. The `copilot` and `cowork` tags catch third-party wrappers and future Microsoft variants if they ever ship a tagged UA, but they will not catch today's products at the UA layer.
 
 Flagged requests are handled according to the configured `mode`:
 
